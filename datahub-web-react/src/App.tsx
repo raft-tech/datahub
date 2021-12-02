@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Cookies from 'js-cookie';
-import { message } from 'antd';
+import { message, Alert } from 'antd';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { ApolloClient, ApolloProvider, createHttpLink, InMemoryCache, ServerError } from '@apollo/client';
 import { onError } from '@apollo/client/link/error';
@@ -97,8 +97,15 @@ const App: React.VFC = () => {
         return register;
     }, []);
 
+    const alertStyles = {
+        textTransform: 'uppercase',
+        textAlign: 'center',
+        fontWeight: 'bold',
+    } as const;
+
     return (
         <ThemeProvider theme={dynamicThemeConfig}>
+            <Alert message="Unclassified" type="success" style={alertStyles} />
             <Router>
                 <EntityRegistryContext.Provider value={entityRegistry}>
                     <ApolloProvider client={client}>
