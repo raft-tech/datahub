@@ -35,13 +35,13 @@ jobs:
           TAG=$(echo ${GITHUB_REF} | sed -e "s,refs/heads/master,head\,${SHORT_SHA},g" -e 's,refs/tags/,,g' -e 's,refs/pull/\([0-9]*\).*,pr\1,g')
           echo "tag=$TAG"
           echo "::set-output name=tag::$TAG"
-      # - name: Check whether publishing enabled
-      #   id: publish
-      #   env:
-      #     ENABLE_PUBLISH: ${{ secrets.DOCKER_PASSWORD }}
-      #   run: |
-      #     echo "Enable publish: ${{ env.ENABLE_PUBLISH != '' }}"
-      #     echo "::set-output name=publish::${{ env.ENABLE_PUBLISH != '' }}"
+      - name: Check whether publishing enabled
+        id: publish
+        env:
+          ENABLE_PUBLISH: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo "Enable publish: ${{ env.ENABLE_PUBLISH != '' }}"
+          echo "::set-output name=publish::${{ env.ENABLE_PUBLISH != '' }}"
   push_to_registries:
     name: Build and Push Docker Image to Docker Hub
     runs-on: ubuntu-latest
@@ -55,7 +55,7 @@ jobs:
         with:
           # list of Docker images to use as base name for tags
           images: |
-            raft-tech/df-datahub-frontend-react
+            linkedin/datahub-frontend-react
           # add git short SHA as Docker tag
           tag-custom: ${{ needs.setup.outputs.tag }}
           tag-custom-only: true
@@ -64,11 +64,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Login to DockerHub
-        # if: ${{ needs.setup.outputs.publish == 'true' }}
+        if: ${{ needs.setup.outputs.publish == 'true' }}
         uses: docker/login-action@v1
         with:
-          username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Build and Push image
         uses: docker/build-push-action@v2
         with:
