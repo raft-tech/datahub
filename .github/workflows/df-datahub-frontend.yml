@@ -1,30 +1,34 @@
-name: Build and Push Docker container
+name: Deploy Docker
 
-on: 
+# Run workflow on tags starting with v (eg. v2, v1.2.0)
+on:
   push:
-    branches:
-      - master
 
 jobs:
-  build-and-push:
-
+  Deploy:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v1
+      - name: Checkout Code
+        uses: actions/checkout@v1
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-      platforms: linux/amd64,linux/arm64
-
-    - name: Build the Docker image
-      run: docker build -t raft-tech/datahub-frontend:latest -f ./docker/datahub-frontend/Dockerfile .
-
-    - name: Setup GitHub Container Registry
-      run: echo "${{secrets.CR_PAT}}" | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
-
-    - name: push to GitHub Container Registry
-      run:  docker push ghcr.io/raft-tech/datahub-frontend:latest
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CR_PAT }}
+      
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v2
+        with:
+          file: ./docker/datahub-frontend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            raft-tech/datahub-frontend:latest
+            ghcr.io/raft-tech/datahub-frontend:latest
