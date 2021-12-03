@@ -13,19 +13,9 @@ on:
 jobs:
   setup:
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Compute Tag
-        id: tag
-        run: |
-          echo "GITHUB_REF: $GITHUB_REF"
-          SHORT_SHA=$(git rev-parse --short "$GITHUB_SHA")
-          TAG=$(echo ${GITHUB_REF} | sed -e "s,refs/heads/master,head\,${SHORT_SHA},g" -e 's,refs/tags/,,g' -e 's,refs/pull/\([0-9]*\).*,pr\1,g')
-          echo "tag=$TAG"
-          echo "::set-output name=tag::$TAG"
   push_to_registries:
     name: Build and Push Docker Image to Github Registry
     runs-on: ubuntu-latest
@@ -33,16 +23,6 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
-      - name: Docker meta
-        id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v1
-        with:
-          # list of Docker images to use as base name for tags
-          images: |
-            raft-tech/df-datahub-frontend-react
-          # add git short SHA as Docker tag
-          tag-custom: ${{ needs.setup.outputs.tag }}
-          tag-custom-only: true
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
