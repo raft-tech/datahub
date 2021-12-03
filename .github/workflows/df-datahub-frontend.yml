@@ -23,6 +23,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
       - name: Build the Docker image
         run: docker build -t raft-tech/datahub:latest -f ./docker/datahub-frontend/Dockerfile .
 
@@ -34,5 +35,4 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Docker image
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         run: docker push ghcr.io/raft-tech/datahub:latest
