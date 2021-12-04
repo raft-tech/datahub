@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: raft-tech/datahub-frontend:latest
+  IMAGE_NAME: raft-tech/datahub-frontend
 
 jobs:
   build-and-push-image:
