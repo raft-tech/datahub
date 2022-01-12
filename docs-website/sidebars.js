@@ -43,6 +43,7 @@ module.exports = {
 
   overviewSidebar: {
     DataHub: [
+      "ORG-README",
       "README",
       // "docs/faq", // hide from sidebar: out of date
       "docs/features",

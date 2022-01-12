@@ -1,0 +1,91 @@
+version: '3.8'
+services:
+  # Pre-creates the search indices using local mapping/settings.json
+  elasticsearch-setup:
+    image: linkedin/datahub-elasticsearch-setup:debug
+    build:
+      context: elasticsearch-setup
+      dockerfile: Dockerfile
+      args:
+        APP_ENV: dev
+    volumes:
+      - ./elasticsearch-setup/create-indices.sh:/create-indices.sh
+      - ../metadata-service/restli-impl/src/main/resources/index/:/index
+
+  kafka-setup:
+    image: linkedin/datahub-kafka-setup:debug
+    build:
+      context: kafka-setup
+      dockerfile: Dockerfile
+      args:
+        APP_ENV: dev
+
+  datahub-gms:
+    image: linkedin/datahub-gms:debug
+    build:
+      context: datahub-gms
+      dockerfile: Dockerfile
+      args:
+        APP_ENV: dev      
+    volumes:
+      - ./datahub-gms/start.sh:/datahub/datahub-gms/scripts/start.sh
+      - ./monitoring/client-prometheus-config.yaml:/datahub/datahub-gms/scripts/prometheus-config.yaml
+      - ../metadata-models/src/main/resources/:/datahub/datahub-gms/resources
+      - ../metadata-service/war/build/libs/:/datahub/datahub-gms/bin
+      - ${HOME}/.datahub/plugins:/etc/datahub/plugins
+    environment:
+      - SKIP_ELASTICSEARCH_CHECK=false
+      - DATASET_ENABLE_SCSI=false
+      - EBEAN_DATASOURCE_USERNAME=datahub
+      - EBEAN_DATASOURCE_PASSWORD=datahub
+      - EBEAN_DATASOURCE_HOST=mysql:3306
+      - EBEAN_DATASOURCE_URL=jdbc:mysql://mysql:3306/datahub?verifyServerCertificate=false&useSSL=true&useUnicode=yes&characterEncoding=UTF-8
+      - EBEAN_DATASOURCE_DRIVER=com.mysql.jdbc.Driver
+      - KAFKA_BOOTSTRAP_SERVER=broker:29092
+      - KAFKA_SCHEMAREGISTRY_URL=http://schema-registry:8081
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - GRAPH_SERVICE_IMPL=elasticsearch
+      - JAVA_OPTS=-Xms1g -Xmx1g
+      - ENTITY_REGISTRY_CONFIG_PATH=/datahub/datahub-gms/resources/entity-registry.yml
+      - MAE_CONSUMER_ENABLED=true
+      - MCE_CONSUMER_ENABLED=true
+    hostname: datahub-gms
+
+  datahub-frontend-react:
+    image: linkedin/datahub-frontend-react:debug
+    build:
+      context: datahub-frontend
+      dockerfile: Dockerfile
+      args:
+        APP_ENV: dev
+    volumes:
+      - ../datahub-frontend/build/stage/datahub-frontend:/datahub-frontend
+    environment:
+      - DATAHUB_GMS_HOST=datahub-gms
+      - DATAHUB_GMS_PORT=8080
+      - DATAHUB_SECRET=YouKnowNothing
+      - DATAHUB_APP_VERSION=1.0
+      - DATAHUB_PLAY_MEM_BUFFER_SIZE=10MB
+      - JAVA_OPTS=-Xms512m -Xmx512m -Dhttp.port=9002 -Dconfig.file=datahub-frontend/conf/application.conf
+        -Djava.security.auth.login.config=datahub-frontend/conf/jaas.conf -Dlogback.configurationFile=datahub-frontend/conf/logback.xml
+        -Dlogback.debug=false -Dpidfile.path=/dev/null
+      - KAFKA_BOOTSTRAP_SERVER=broker:29092
+      - DATAHUB_TRACKING_TOPIC=DataHubUsageEvent_v1
+      - ELASTIC_CLIENT_HOST=elasticsearch
+      - ELASTIC_CLIENT_PORT=9200
+      - AUTH_OIDC_ENABLED=true
+      - AUTH_OIDC_CLIENT_ID=data-fabric-confidential
+      - AUTH_OIDC_CLIENT_SECRET=e96ef414-de3e-460c-bd91-0866debfd8eb
+      - AUTH_OIDC_DISCOVERY_URI=http://${IP_ADDRESS-localhost}:8100/auth/realms/data-fabric-realm/.well-known/openid-configuration
+      - AUTH_OIDC_BASE_URL=http://${IP_ADDRESS-localhost}:9002
+      - AUTH_JAAS_ENABLED=false
+      - AUTH_OIDC_JIT_PROVISIONING_ENABLED=true
+      - AUTH_OIDC_PRE_PROVISIONING_REQUIRED=false
+      - AUTH_OIDC_EXTRACT_GROUPS_ENABLED=true
+      - AUTH_OIDC_GROUPS_CLAIM=groups
+    hostname: datahub-frontend-react
+
+networks:
+  default:
+    name: datafabric_network
